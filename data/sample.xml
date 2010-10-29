@@ -1,27 +1,26 @@
 <?xml version="1.0"?>
 <root>
-	<version>ARa2Book/0.1</version>
+	<version>ARa2Book/0.2</version>
 	<config>
 		
-		<ar_param>
-			<url>file:///D:/yuya/workspace/ARa2/data/camera_para.dat</url>
-			<screen>
+		<screen>
 				<x>640</x>
 				<y>480</y>
 			</screen>
-		</ar_param>
-		<frame_rate>20.0</frame_rate>
-		<min_confidence>0.5</min_confidence></config>
+		<capture><device_index>0</device_index><camera_param>camera_para.dat</camera_param><frame_rate>15.0</frame_rate>
+			</capture>
+		<artoolkit><min_confidence>0.5</min_confidence>
+			<continuous_detection>true</continuous_detection></artoolkit></config>
 	
 	<nodes><node>
 		<comment>usagi</comment><scale>3</scale>
 		
-		<mqo_file>file:///D:/yuya/ARa-trunk/usagi/usagi_frozen.mqo</mqo_file>
+		<mqo_file>mqo_file/usagi_frozen.mqo</mqo_file>
 	<ar_code>
-			<url>file:///D:/yuya/workspace/ARa2/data/patt.hiro</url>
+			<url>patt/patt.hiro</url>
 			<size>80.0</size>
 		</ar_code></node>
-		<node><comment>kame</comment><scale>3</scale><mqo_file>file:///D:/yuya/ARa-trunk/usagi/usagi.mqo</mqo_file><ar_code>
-			<url>file:///D:/yuya/workspace/ARa2/data/patt.kanji</url>
+		<node><comment>kame</comment><scale>3</scale><mqo_file>mqo_file/kame_frozen.mqo</mqo_file><ar_code>
+			<url>patt/patt.kanji</url>
 			<size>80.0</size>
 		</ar_code></node></nodes></root>
