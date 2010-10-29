@@ -1,23 +1,27 @@
 <?xml version="1.0"?>
 <root>
-	<version>NyARMqoViewer/0.1</version>
+	<version>ARa2Book/0.1</version>
 	<config>
-		<ar_code>
-			<url>http://127.0.0.1/model/patt.hiro</url>
-			<size>80.0</size>
-		</ar_code>
+		
 		<ar_param>
-			<url>http://127.0.0.1/model/camera_para.dat</url>
+			<url>file:///D:/yuya/workspace/ARa2/data/camera_para.dat</url>
 			<screen>
 				<x>640</x>
 				<y>480</y>
 			</screen>
 		</ar_param>
-		<frame_rate>15.0</frame_rate>
-	</config>
-	<content>
-		<scale>0.2</scale>
-		<comment>TEST</comment>
-		<mqo_file>http://127.0.0.1/model/nh0072/miku_xx08/miku.mqo</mqo_file>
-	</content>
-</root>
+		<frame_rate>20.0</frame_rate>
+		<min_confidence>0.5</min_confidence></config>
+	
+	<nodes><node>
+		<comment>usagi</comment><scale>3</scale>
+		
+		<mqo_file>file:///D:/yuya/ARa-trunk/usagi/usagi_frozen.mqo</mqo_file>
+	<ar_code>
+			<url>file:///D:/yuya/workspace/ARa2/data/patt.hiro</url>
+			<size>80.0</size>
+		</ar_code></node>
+		<node><comment>kame</comment><scale>3</scale><mqo_file>file:///D:/yuya/ARa-trunk/usagi/usagi.mqo</mqo_file><ar_code>
+			<url>file:///D:/yuya/workspace/ARa2/data/patt.kanji</url>
+			<size>80.0</size>
+		</ar_code></node></nodes></root>
