@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<root>
+	<version>ARa2Book/0.2</version>
+	<comment>test.xml</comment>
+	<config>
+		
+		<screen>
+				<x>640</x>
+				<y>480</y>
+			</screen>
+		<capture><device_index>0</device_index><camera_param>camera_para.dat</camera_param><frame_rate>15.0</frame_rate>
+			</capture>
+		<artoolkit><min_confidence>0.0</min_confidence>
+			<continuous_detection>false</continuous_detection></artoolkit></config>
+	
+	<nodes><node>
+		<comment>usagi_frozen / pat_star</comment><scale>3</scale>
+		
+		<mqo_file>D:\yuya\ARa-trunk\usagi\usagi_frozen.mqo</mqo_file>
+	<ar_code>
+			<url>C:\Users\USER1\Desktop\pat_star</url>
+			<size>80.0</size>
+		</ar_code></node></nodes></root>

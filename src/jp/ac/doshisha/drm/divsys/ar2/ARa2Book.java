@@ -8,6 +8,7 @@
 
 package jp.ac.doshisha.drm.divsys.ar2;
 
+import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Insets;
 import java.awt.event.WindowAdapter;
@@ -20,6 +21,7 @@ import java.net.URL;
 import java.util.Date;
 
 import javax.media.Buffer;
+import javax.media.format.YUVFormat;
 import javax.media.opengl.GL;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCanvas;
@@ -187,6 +189,7 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
     private NyARGLUtil glnya;
     private NyARDetectMarker nya;
     private NyARParam ar_param;
+    private Frame frame;
 
     /**
      * お手軽HttpInputStream生成関数
@@ -235,11 +238,13 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	//マーカーDetecterの作成
 	this.capture.setCaptureFormat(SCR_X, SCR_Y, app_param.frame_rate);
 	this.cap_image=new JmfNyARRaster_RGB(this.ar_param, this.capture.getCaptureFormat());
+	// YUV Video Format: Size = java.awt.Dimension[width=640,height=480] MaxDataLength = 614400 DataType = class [B yuvType = 32 StrideY = 1280 StrideUV = 1280 OffsetY = 0 OffsetU = 1 OffsetV = 3
+//	this.cap_image=new JmfNyARRaster_RGB(this.ar_param, new YUVFormat(new Dimension(SCR_X, SCR_Y), 614400, byte[].class, this.app_param.frame_rate, 32, 1280, 1280, 0, 1, 3));
 	this.nya=createNyARDetectMarker();
 	this.nya.setContinueMode(this.app_param.continuous_detection);
 	Logger.logln("ウインドウを作成しています.");
 	//ウインドウの準備
-	Frame frame = new Frame("ARa2Book");
+	this.frame = new Frame("ARa2Book");
 	GLCanvas canvas = new GLCanvas();
 	frame.add(canvas);
 	canvas.addGLEventListener(this);
@@ -252,9 +257,7 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	Insets ins=frame.getInsets();
 	frame.setSize(SCR_X+ins.left+ins.right,SCR_Y+ins.top+ins.bottom);
 	canvas.setBounds(ins.left,ins.top,SCR_X,SCR_Y);
-	this.frame = frame;
     }
-    Frame frame;
     public void init(GLAutoDrawable drawable)
     {
 	Logger.logln("OpenGLを初期化しています.");
