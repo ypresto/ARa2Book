@@ -1,6 +1,5 @@
 package jp.ac.doshisha.drm.divsys.ar2;
 
-import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -31,38 +30,16 @@ public class ARa2Node {
 		ar_code = new NyARCode(16, 16);
 	}
 
-	public void loadExternalData(URL i_base_url) throws KGLException, NyARException {
+	public void loadExternalData(URL i_base_url) throws KGLException, NyARException, MalformedURLException {
 		URL main_url;
 		URL arcode_url;
-		try {
-			if (i_base_url != null) {
-				main_url = new URL(i_base_url, main_identifier);
-			}
-			else {
-				main_url = new URL(main_identifier);
-			}
-		} catch (MalformedURLException e1) {
-			// ファイルかも
-			try {
-				main_url = new File(main_identifier).toURI().toURL();
-			} catch (MalformedURLException e2) {
-				throw new NyARException(e2);
-			}
+		if (i_base_url != null) {
+			main_url = new URL(i_base_url, main_identifier);
+			arcode_url = new URL(i_base_url, arcode_identifier);
 		}
-		try {
-			if (i_base_url != null) {
-				arcode_url = new URL(i_base_url, arcode_identifier);
-			}
-			else {
-				arcode_url = new URL(arcode_identifier);
-			}
-		} catch (MalformedURLException e1) {
-			// ファイルかも
-			try {
-				arcode_url = new File(arcode_identifier).toURI().toURL();
-			} catch (MalformedURLException e2) {
-				throw new NyARException(e2);
-			}
+		else {
+			main_url = new URL(main_identifier);
+			arcode_url = new URL(arcode_identifier);
 		}
 		main_content_provider = new HttpContentProvider(main_url.toString());
 		ar_code.loadARPatt(HttpContentProvider.createInputStream(arcode_url));

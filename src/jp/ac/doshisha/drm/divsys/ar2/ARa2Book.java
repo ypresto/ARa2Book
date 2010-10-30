@@ -13,10 +13,7 @@ import java.awt.Frame;
 import java.awt.Insets;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
 
@@ -26,8 +23,6 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCanvas;
 import javax.media.opengl.GLEventListener;
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -59,16 +54,14 @@ class Logger
 class NyARMqoViewerParam
 {
     public URL    base_url;
-    public String version = "ARa2Book/0.2";
+    public String version;
     public String cparam_identifier;
     public ARa2Node[] node_array;
-    public int screen_x = 640;
-    public int screen_y = 480;
-    public float frame_rate = 15.0F;
-    public String comment = "";
-	public double confidence = 0.5;
-	public boolean continuous_detection = false;
-	public int capture_device_index = 0;
+    public int screen_x;
+    public int screen_y;
+    public float frame_rate;
+    public String comment;
+	public double confidence;
     public NyARMqoViewerParam(URL i_url) throws NyARException
     {
 	Logger.logln("メタデータに接続中\r\n->"+i_url);
@@ -82,24 +75,7 @@ class NyARMqoViewerParam
 	    throw new NyARException(e);
 	}
     }
-    public NyARMqoViewerParam(File i_file) throws NyARException
-	{
-	Logger.logln("メタデータに接続中\r\n->"+i_file.toString());
-	   try {
-			this.base_url=i_file.toURI().toURL();
-		} catch (MalformedURLException e) {
-			throw new NyARException(e);
-		}
-	    // File接続
-	try{
-	    InputStream in=new FileInputStream(i_file);
-	        initByInputStream(in);
-	        in.close();
-	}catch(Exception e){
-	    throw new NyARException(e);
-	}
-	}
-	private void initByInputStream(InputStream input_stream) throws NyARException
+    private void initByInputStream(InputStream input_stream) throws NyARException
     {
 	try{
 	    //DOMの準備
@@ -117,13 +93,11 @@ class NyARMqoViewerParam
 	    version=root.selectString("version");
 	    //Config読み出し
 	    tmp=root.select("config");
-	    this.capture_device_index=tmp.selectInt("capture/device_index");
-	    this.cparam_identifier=tmp.selectString("capture/camera_param_file");
-	    this.frame_rate=(float)tmp.selectDouble("capture/frame_rate");
-	    this.screen_x=tmp.selectInt("screen/x");
-	    this.screen_y=tmp.selectInt("screen/y");
-	    this.confidence=tmp.selectDouble("artoolkit/min_confidence");
-	    this.continuous_detection=Boolean.parseBoolean(tmp.selectString("artoolkit/continuous_detection"));
+	    this.cparam_identifier=tmp.selectString("ar_param/url");
+	    this.screen_x=tmp.selectInt("ar_param/screen/x");
+	    this.screen_y=tmp.selectInt("ar_param/screen/y");
+	    this.frame_rate=(float)tmp.selectDouble("frame_rate");
+	    this.confidence=tmp.selectDouble("min_confidence");
 	    //Comment読み出し
 	    comment = root.selectString("comment");
 
@@ -149,8 +123,8 @@ class NyARMqoViewerParam
     }
     private void validationCheck() throws NyARException
     {
-    	if(!version.equals("ARa2Book/0.2")){
-    		throw new NyARException("バージョン不一致 ARa2Book/0.2である必要があります。");
+    	if(!version.equals("ARa2Book/0.1")){
+    		throw new NyARException("バージョン不一致 ARa2Book/0.1である必要があります。");
     	}
     	for (int i = 0; i < node_array.length; i++) {
     		if(node_array[i].marker_size < 5.0f || node_array[i].marker_size > 1000.0){
@@ -223,12 +197,7 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	int SCR_Y=this.app_param.screen_y;
 	//キャプチャの準備
 	Logger.logln("キャプチャデバイスを準備しています.");
-	JmfCaptureDeviceList cdl = new JmfCaptureDeviceList();
-	if (this.app_param.capture_device_index >= cdl.getCount()) {
-		throw new NyARException(
-				"キャプチャデバイス番号: " + this.app_param.capture_device_index + " は存在しません.");
-	}
-	this.capture=cdl.getDevice(this.app_param.capture_device_index);
+	this.capture=(new JmfCaptureDeviceList()).getDevice(0);
 	this.capture.setOnCapture(this);
 	//NyARToolkitの準備
 	Logger.logln("NyARToolkitを準備しています.");
@@ -241,7 +210,7 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	// YUV Video Format: Size = java.awt.Dimension[width=640,height=480] MaxDataLength = 614400 DataType = class [B yuvType = 32 StrideY = 1280 StrideUV = 1280 OffsetY = 0 OffsetU = 1 OffsetV = 3
 //	this.cap_image=new JmfNyARRaster_RGB(this.ar_param, new YUVFormat(new Dimension(SCR_X, SCR_Y), 614400, byte[].class, this.app_param.frame_rate, 32, 1280, 1280, 0, 1, 3));
 	this.nya=createNyARDetectMarker();
-	this.nya.setContinueMode(this.app_param.continuous_detection);
+	this.nya.setContinueMode(true);
 	Logger.logln("ウインドウを作成しています.");
 	//ウインドウの準備
 	this.frame = new Frame("ARa2Book");
@@ -265,13 +234,13 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	Logger.logln("モデルデータに接続中です.");
-	for (int i = 0; i < app_param.node_array.length; i++) {
-		try {
+	try {
+		for (int i = 0; i < app_param.node_array.length; i++) {
 			app_param.node_array[i].createModelData(gl);
 		}
-		catch(Exception e) {
-			JOptionPane.showMessageDialog(frame, e, "ARa2Node - モデルデータの読み込みに失敗", JOptionPane.ERROR_MESSAGE);
-		}
+	}
+	catch(Exception e) {
+	    e.printStackTrace() ;
 	}
 	//NyARToolkitの準備
 	try{
@@ -400,66 +369,31 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	System.out.println("kGLModel (c)2008 kei");
 	//System.out.println("");
 	System.out.println();
-	File file = null;
 	String target=null;
 	int threshold=0;
 	switch(args.length){
-	case 0:
-		file=openFileSelectDialog();
-		break;
 	case 1:
-		try {
-			threshold=Integer.parseInt(args[0]);
-			file=openFileSelectDialog();
-		} catch (NumberFormatException e) {
-		    threshold=110;
-		    target=args[0];
-		}
+	    threshold=110;
+	    target=args[0];
 	    break;
 	case 2:
 	    target=args[0];
 	    threshold=Integer.parseInt(args[1]);
 	    break;
 	default:
+	    System.err.println("引数には設定XMLのURLを設定してください。");
+	    System.err.println("#ARa2Book [URL:設定xmlのurl] [カメラ閾値]");
+	    System.exit(-1);
 	}
 	try{
-		NyARMqoViewerParam param = null;
-		if (file != null) {
-			// File接続
-			param=new NyARMqoViewerParam(file);
-		}
-		else if (target != null) {
-			// URL接続
-			try {
-				param=new NyARMqoViewerParam(new URL(target));
-			} catch (MalformedURLException e) {
-				param=new NyARMqoViewerParam(new File(target));
-			}
-		}
-		else {
-			// ターゲットなし
-		    System.err.println("引数には設定XMLのURLを設定してください。");
-		    System.err.println("#ARa2Book [URL:設定xmlのurl] [カメラ閾値]");
-		    System.err.println("※引数なしで起動すると、ファイル選択ダイアログを表示します。");
-		    System.exit(-1);
-		}
+	    // URL接続
+	    NyARMqoViewerParam param=new NyARMqoViewerParam(new URL(target));
 	    System.out.println("==メタデータの情報==\r\n"+param.comment);
 	    new ARa2Book(param,threshold);
 	} catch (Exception ex){
-	    System.err.println("FATAL ERROR!");
+	    System.err.println("エラーになっちゃった。");
 	    ex.printStackTrace();
-		JOptionPane.showMessageDialog(null, ex, "ARa2Node - 致命的なエラー", JOptionPane.ERROR_MESSAGE);
 	}
     }
-
-
-	protected static File openFileSelectDialog() {
-		JFileChooser jfc = new JFileChooser(new File("."));
-		if (jfc.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-			return jfc.getSelectedFile();
-		}
-		else {
-			return null;
-		}
-	}
 }
+
