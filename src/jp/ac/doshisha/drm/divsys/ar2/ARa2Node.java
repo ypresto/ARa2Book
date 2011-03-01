@@ -1,5 +1,6 @@
 package jp.ac.doshisha.drm.divsys.ar2;
 
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 

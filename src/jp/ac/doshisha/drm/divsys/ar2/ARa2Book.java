@@ -8,7 +8,6 @@
 
 package jp.ac.doshisha.drm.divsys.ar2;
 
-import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Insets;
 import java.awt.event.WindowAdapter;
@@ -18,7 +17,6 @@ import java.net.URL;
 import java.util.Date;
 
 import javax.media.Buffer;
-import javax.media.format.YUVFormat;
 import javax.media.opengl.GL;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCanvas;
@@ -51,9 +49,10 @@ class Logger
 	System.out.println("["+d+"]"+i_message);
     }
 }
-class NyARMqoViewerParam
+class ARa2BookParam
 {
     public URL    base_url;
+    public boolean is_resource = false;
     public String version;
     public String cparam_identifier;
     public ARa2Node[] node_array;
@@ -62,11 +61,29 @@ class NyARMqoViewerParam
     public float frame_rate;
     public String comment;
 	public double confidence;
-    public NyARMqoViewerParam(URL i_url) throws NyARException
+    public ARa2BookParam(URL i_url) throws NyARException
     {
 	Logger.logln("メタデータに接続中\r\n->"+i_url);
         this.base_url=i_url;
         // URL接続
+	try{
+	    InputStream in=HttpContentProvider.createInputStream(i_url);
+            initByInputStream(in);
+            in.close();
+	}catch(Exception e){
+	    throw new NyARException(e);
+	}
+    }
+    public ARa2BookParam(URL i_url, boolean is_resource) throws NyARException
+    {
+	Logger.logln("メタデータに接続中\r\n->"+i_url);
+	if (is_resource == true) {
+		this.base_url = null;
+		this.is_resource = true;
+	} else {
+		this.base_url = i_url;
+		this.is_resource = false;
+	}
 	try{
 	    InputStream in=HttpContentProvider.createInputStream(i_url);
             initByInputStream(in);
@@ -93,7 +110,7 @@ class NyARMqoViewerParam
 	    version=root.selectString("version");
 	    //Config読み出し
 	    tmp=root.select("config");
-	    this.cparam_identifier=tmp.selectString("ar_param/url");
+	    this.cparam_identifier=tmp.selectString("ar_param/camera_param_file");
 	    this.screen_x=tmp.selectInt("ar_param/screen/x");
 	    this.screen_y=tmp.selectInt("ar_param/screen/y");
 	    this.frame_rate=(float)tmp.selectDouble("frame_rate");
@@ -105,14 +122,27 @@ class NyARMqoViewerParam
 	    NodeList tmp_nl = root.selectNodeSet("nodes/node");
 	    node_array = new ARa2Node[tmp_nl.getLength()];
 	    for (int i = 0; i < node_array.length; i++) {
-	    	node_array[i] = new ARa2Node();
+	    	ARa2Node node = new ARa2Node();
 		    SimpleXPath tmp_node = new SimpleXPath(tmp_nl.item(i));
-		    node_array[i].main_identifier = tmp_node.selectString("mqo_file");
-		    node_array[i].arcode_identifier = tmp_node.selectString("ar_code/url");
-		    node_array[i].marker_size = tmp_node.selectDouble("ar_code/size");
-		    node_array[i].scale = (float) tmp_node.selectDouble("scale");
-		    node_array[i].comment = tmp.selectString("comment");
-		    node_array[i].loadExternalData(base_url);
+		    node.main_identifier = tmp_node.selectString("mqo_file");
+		    node.arcode_identifier = tmp_node.selectString("ar_code/pattern_file");
+		    node.marker_size = tmp_node.selectDouble("ar_code/size");
+		    node.scale = (float) tmp_node.selectDouble("scale");
+		    node.comment = tmp.selectString("comment");
+		    if (is_resource == true) {
+		    	URL main_url = ARa2BookParam.class.getResource(node.main_identifier);
+		    	URL arcode_url = ARa2BookParam.class.getResource(node.arcode_identifier);
+		    	if (main_url == null) {
+		    		throw new NyARException("mqo file " + node.main_identifier + " not found (" + node.comment +")");
+		    	}
+		    	if (arcode_url == null) {
+		    		throw new NyARException("ar code file " + node.arcode_identifier + " not found (" + node.comment +")");
+		    	}
+		    	node.main_identifier = main_url.toString();
+		    	node.arcode_identifier = arcode_url.toString();
+		    }
+		    node.loadExternalData(base_url);
+		    node_array[i] = node;
 	    }
 
 	}catch (Exception e){
@@ -123,8 +153,8 @@ class NyARMqoViewerParam
     }
     private void validationCheck() throws NyARException
     {
-    	if(!version.equals("ARa2Book/0.1")){
-    		throw new NyARException("バージョン不一致 ARa2Book/0.1である必要があります。");
+    	if(!version.equals("ARa2Book/0.3")){
+    		throw new NyARException("バージョン不一致 ARa2Book/0.3である必要があります。");
     	}
     	for (int i = 0; i < node_array.length; i++) {
     		if(node_array[i].marker_size < 5.0f || node_array[i].marker_size > 1000.0){
@@ -153,8 +183,9 @@ class NyARMqoViewerParam
 
 public class ARa2Book implements GLEventListener,JmfCaptureListener
 {
+	static final String RESOURCE_PREFIX = "/";
 	private int threshold;
-    private NyARMqoViewerParam app_param;
+    private ARa2BookParam app_param;
     private Animator animator;
     private JmfNyARRaster_RGB cap_image;
     private JmfCaptureDevice capture;
@@ -186,7 +217,7 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
     }
 
 
-    public ARa2Book(NyARMqoViewerParam i_param,int i_threshold) throws NyARException
+    public ARa2Book(ARa2BookParam i_param,int i_threshold) throws NyARException
     {
 	System.setProperty("java.net.useSystemProxies", "true");
 
@@ -199,16 +230,15 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	Logger.logln("キャプチャデバイスを準備しています.");
 	this.capture=(new JmfCaptureDeviceList()).getDevice(0);
 	this.capture.setOnCapture(this);
+	this.capture.setCaptureFormat(SCR_X, SCR_Y, app_param.frame_rate);
 	//NyARToolkitの準備
 	Logger.logln("NyARToolkitを準備しています.");
 	this.ar_param=new NyARParam();
 	this.ar_param.loadARParam(createHttpStream(this.app_param.base_url,this.app_param.cparam_identifier));
 	this.ar_param.changeScreenSize(SCR_X,SCR_Y);
-	//マーカーDetecterの作成
-	this.capture.setCaptureFormat(SCR_X, SCR_Y, app_param.frame_rate);
+	// RGBラスタを作成
 	this.cap_image=new JmfNyARRaster_RGB(this.ar_param, this.capture.getCaptureFormat());
-	// YUV Video Format: Size = java.awt.Dimension[width=640,height=480] MaxDataLength = 614400 DataType = class [B yuvType = 32 StrideY = 1280 StrideUV = 1280 OffsetY = 0 OffsetU = 1 OffsetV = 3
-//	this.cap_image=new JmfNyARRaster_RGB(this.ar_param, new YUVFormat(new Dimension(SCR_X, SCR_Y), 614400, byte[].class, this.app_param.frame_rate, 32, 1280, 1280, 0, 1, 3));
+	//マーカーDetecterの作成
 	this.nya=createNyARDetectMarker();
 	this.nya.setContinueMode(true);
 	Logger.logln("ウインドウを作成しています.");
@@ -370,16 +400,21 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	//System.out.println("");
 	System.out.println();
 	String target=null;
-	int threshold=0;
+	int threshold=110;
 	switch(args.length){
 	case 1:
-	    threshold=110;
 	    target=args[0];
 	    break;
 	case 2:
 	    target=args[0];
 	    threshold=Integer.parseInt(args[1]);
 	    break;
+	case 0:
+		URL url = ARa2Book.class.getResource(ARa2Book.RESOURCE_PREFIX + "config.xml");
+		if (url != null) {
+			target = url.toString();
+			break;
+		}
 	default:
 	    System.err.println("引数には設定XMLのURLを設定してください。");
 	    System.err.println("#ARa2Book [URL:設定xmlのurl] [カメラ閾値]");
@@ -387,7 +422,7 @@ public class ARa2Book implements GLEventListener,JmfCaptureListener
 	}
 	try{
 	    // URL接続
-	    NyARMqoViewerParam param=new NyARMqoViewerParam(new URL(target));
+	    ARa2BookParam param=new ARa2BookParam(new URL(target));
 	    System.out.println("==メタデータの情報==\r\n"+param.comment);
 	    new ARa2Book(param,threshold);
 	} catch (Exception ex){
